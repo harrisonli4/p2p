@@ -155,8 +155,8 @@ class SpudStd(Peer):
                 ## chosen append someone random
                 for c in chosen:
                     requesters.remove(c)
-                optimistic = random.sample(requesters,1)[0]
-                chosen.append(optimistic)
+                optimistic = random.sample(requesters, min(4 - len(chosen), len(requesters)))
+                chosen.extend(optimistic)
 
             logging.debug("chosen: %s", chosen)
             # change my internal state for no reason
