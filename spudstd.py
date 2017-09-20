@@ -138,7 +138,7 @@ class SpudStd(Peer):
 
             peer_blocks = dict()
             ## look at the last history
-            downloads = history.downloads[-1]
+            downloads = list(history.downloads[-1])
             downloads.extend(history.downloads[-2])
             for d in downloads:
                 ## sort, and take top 3 to unchoke
