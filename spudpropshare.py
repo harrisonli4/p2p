@@ -8,6 +8,7 @@
 
 import random
 import logging
+import math
 
 from messages import Upload, Request
 from util import even_split
@@ -31,7 +32,6 @@ class SpudPropShare(Peer):
         needed = lambda i: self.pieces[i] < self.conf.blocks_per_piece
         needed_pieces = filter(needed, range(len(self.pieces)))
         np_set = set(needed_pieces)  # sets support fast intersection ops.
-
 
         logging.debug("%s here: still need pieces %s" % (
             self.id, needed_pieces))
@@ -89,22 +89,52 @@ class SpudPropShare(Peer):
         # has a list of Download objects for each Download to this peer in
         # the previous round.
 
+        bw_alloc = {}
         if len(requests) == 0:
             logging.debug("No one wants my pieces!")
-            chosen = []
-            bws = []
         else:
-            logging.debug("Still here: uploading to a random peer")
+            # compute number of blocks downloaded from each peer in last round
+            peer_dict = {p.id:0 for p in peers}
+            for d_obj in history.downloads[-1]:
+                peer_dict[d_obj.from_id] += d_obj.blocks
+            print 'Downloaded blocks from each peer:', peer_dict
+
+            # only consider peers who are requesting from me
+            peer_dict_sub = {k:v for k, v in peer_dict.iteritems() if k in [req.requester_id for req in requests]}
+            
+            print 'Peers requesting from me', peer_dict_sub
+            
+            # compute bandwith allocations
+            bw_alloc = {p:0. for p in peer_dict_sub}
+            denom = float(sum(peer_dict_sub.values()))
+            reserve = 0.1 # bw prop. reserved for optimistic unchoking
+            if denom > 0:
+                for peer in peer_dict_sub:
+                    bw_alloc[peer] = math.floor(self.up_bw * (1. - reserve) * peer_dict_sub[peer] / denom) 
+
+            # optimistic unchoking
+            rem_req_peers = [p for p,v in bw_alloc.iteritems() if v == 0.]
+            if rem_req_peers:
+                rand_peer = random.choice(rem_req_peers)
+                logging.debug('Randomly unchoked peer:' + rand_peer)
+                bw_alloc[rand_peer] = self.up_bw - sum(bw_alloc.values())
+
+            # increase the bandwith for all others if no peers left to optimistically unchoke
+            else:
+                for k in bw_alloc.keys():
+                    bw_alloc[k] = math.floor(1. / (1. - reserve) * bw_alloc[k])
+
+            print 'Allocated bandwith:', bw_alloc, 'Max bandwith', self.up_bw
+            logging.debug("Still here: uploading")
+            
+            # get rid of 0's
+            bw_alloc = {p:bw_alloc[p] for p in bw_alloc if bw_alloc[p] > 0}
+
             # change my internal state for no reason
             self.dummy_state["cake"] = "pie"
 
-            request = random.choice(requests)
-            chosen = [request.requester_id]
-            # Evenly "split" my upload bandwidth among the one chosen requester
-            bws = even_split(self.up_bw, len(chosen))
-
         # create actual uploads out of the list of peer ids and bandwidths
         uploads = [Upload(self.id, peer_id, bw)
-                   for (peer_id, bw) in zip(chosen, bws)]
+                   for (peer_id, bw) in bw_alloc.iteritems()]
             
         return uploads

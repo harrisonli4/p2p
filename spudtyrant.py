@@ -91,9 +91,8 @@ class SpudTyrant(Peer):
 
         if len(requests) == 0:
             logging.debug("No one wants my pieces!")
-            chosen = []
-            bws = []
         else:
+
             logging.debug("Still here: uploading to a random peer")
             # change my internal state for no reason
             self.dummy_state["cake"] = "pie"
