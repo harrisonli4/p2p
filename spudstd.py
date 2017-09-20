@@ -16,7 +16,7 @@ from peer import Peer
 class SpudStd(Peer):
 
     def post_init(self):
-        print "post_init(): %s here!" % self.id
+        # print "post_init(): %s here!" % self.id
         self.dummy_state = dict()
         self.dummy_state["cake"] = "lie"
         self.slots = 3
@@ -40,15 +40,15 @@ class SpudStd(Peer):
         # Symmetry breaking is good...
         # random.shuffle(needed_pieces)
 
-        logging.debug("%s here: still need pieces %s" % (
-            self.id, needed_pieces))
+        # logging.debug("%s here: still need pieces %s" % (
+          #  self.id, needed_pieces))
 
         #logging.debug("%s still here. Here are some peers:" % self.id)
 
         piece_counts = dict()
 
         for p in peers:
-            logging.debug("id: %s, available pieces: %s" % (p.id, p.available_pieces))
+            # logging.debug("id: %s, available pieces: %s" % (p.id, p.available_pieces))
             #### request rarest first functionality #####
 
             for piece in p.available_pieces:
@@ -59,15 +59,15 @@ class SpudStd(Peer):
                         piece_counts[piece] = [p.id]
                     ###### request rarest first functionality ####
         
-        logging.debug("number of pieces needed: %s" % (len(np_set)))
-
-        logging.debug("number of pieces available: %s" % (len(piece_counts)))
+        # logging.debug("number of pieces needed: %s" % (len(np_set)))
+# 
+        # logging.debug("number of pieces available: %s" % (len(piece_counts)))
 
         # logging.debug("piece_counts: %s" % (piece_counts))
         rarest_pieces = sorted(piece_counts, key = piece_counts.get, cmp = tie_compare)
-        logging.debug("rarest_pieces: %s" % (rarest_pieces))
-        logging.debug("And look, I have my entire history available too:")
-        logging.debug("look at the AgentHistory class in history.py for details")
+        # logging.debug("rarest_pieces: %s" % (rarest_pieces))
+        # logging.debug("And look, I have my entire history available too:")
+        # logging.debug("look at the AgentHistory class in history.py for details")
         # logging.debug(str(history))
       
 
@@ -85,13 +85,12 @@ class SpudStd(Peer):
         ### TODO check most recent round and see if you uploaded the most to ### 
             ## for now, randomly pick a peer to request ##
             cand_peers = filter(lambda x: reqs_perpeer[x] < self.max_requests, piece_counts[piece_id])
-            print cand_peers
             if len(cand_peers) < 1:
                 continue
             peer_id = random.choice(cand_peers)
             # if reqs_perpeer[peer_id] < self.max_requests:
             reqs_perpeer[peer_id] = reqs_perpeer[peer_id] +1
-            logging.debug("peer_id: %s, requests: %s, max: %s" % (peer_id, reqs_perpeer[peer_id], self.max_requests))
+            # logging.debug("peer_id: %s, requests: %s, max: %s" % (peer_id, reqs_perpeer[peer_id], self.max_requests))
             # av_set = set(peer.available_pieces)
             # isect = av_set.intersection(np_set)
             # n = min(self.max_requests, len(isect))
@@ -106,7 +105,7 @@ class SpudStd(Peer):
             start_block = self.pieces[piece_id]
             r = Request(self.id, peer_id, piece_id, start_block)
             requests.append(r)
-        logging.debug("number of requests made: %s" % (len(requests)))
+        # logging.debug("number of requests made: %s" % (len(requests)))
         return requests
 
     def uploads(self, requests, peers, history):
@@ -120,19 +119,19 @@ class SpudStd(Peer):
         In each round, this will be called after requests().
         """
         round = history.current_round()
-        logging.debug("%s again.  It's round %d." % (
-            self.id, round))
+        # logging.debug("%s again.  It's round %d." % (
+            # self.id, round))
         # One could look at other stuff in the history too here.
         # For example, history.downloads[round-1] (if round != 0, of course)
         # has a list of Download objects for each Download to this peer in
         # the previous round.
 
         if len(requests) == 0:
-            logging.debug("No one wants my pieces!")
+            # logging.debug("No one wants my pieces!")
             chosen = []
             bws = []
         else:
-            logging.debug("Still here: uploading")
+            # logging.debug("Still here: uploading")
 
             ## get list of requesters
             requesters = set([req.requester_id for req in requests])
@@ -154,7 +153,7 @@ class SpudStd(Peer):
             sorted_requesters = sorted(peer_blocks, key = peer_blocks.get)[::-1]
             chosen = []
 
-            logging.debug("chosen, %s", chosen)
+            # logging.debug("chosen, %s", chosen)
             if len(sorted_requesters) >= self.slots:
                 # pick top 3
                 chosen = sorted_requesters[:self.slots]
@@ -169,7 +168,7 @@ class SpudStd(Peer):
                 optimistic = random.sample(requesters, min(self.slots+1 - len(chosen), len(requesters)))
                 chosen.extend(optimistic)
 
-            logging.debug("chosen: %s", chosen)
+            # logging.debug("chosen: %s", chosen)
             #request = random.choice(requests)
             #chosen = [request.requester_id]
             # Evenly "split" my upload bandwidth among the one chosen requester
@@ -181,5 +180,5 @@ class SpudStd(Peer):
         # create actual uploads out of the list of peer ids and bandwidths
         uploads = [Upload(self.id, peer_id, bw)
                    for (peer_id, bw) in zip(chosen, bws)]
-        logging.debug("Uploads %s", len(uploads))
+        # logging.debug("Uploads %s", len(uploads))
         return uploads
