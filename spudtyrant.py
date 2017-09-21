@@ -16,7 +16,7 @@ from peer import Peer
 
 class SpudTyrant(Peer):
     def post_init(self):
-        print "post_init(): %s here!" % self.id
+        # print "post_init(): %s here!" % self.id
         self.dummy_state = dict()
         self.dummy_state["cake"] = "lie"
         self.tau = {} # expected upload rate for reciprocation
@@ -45,11 +45,6 @@ class SpudTyrant(Peer):
         
 
         requests = []   # We'll put all the things we want here
-        # Symmetry breaking is good...
-        # random.shuffle(needed_pieces)
-
-        # logging.debug("%s here: still need pieces %s" % (
-          #  self.id, needed_pieces))
 
         #logging.debug("%s still here. Here are some peers:" % self.id)
 

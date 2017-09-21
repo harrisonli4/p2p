@@ -16,7 +16,7 @@ from peer import Peer
 
 class SpudPropShare(Peer):
     def post_init(self):
-        print "post_init(): %s here!" % self.id
+        # print "post_init(): %s here!" % self.id
         self.dummy_state = dict()
         self.dummy_state["cake"] = "lie"
     
@@ -136,7 +136,7 @@ class SpudPropShare(Peer):
                 logging.debug('Randomly unchoked peer:' + rand_peer)
                 bw_alloc[rand_peer] = self.up_bw - sum(bw_alloc.values())
 
-            # increase the bandwith for all others if no peers left to optimistically unchoke
+            # increase the bandwidth for all others if no peers left to optimistically unchoke
             else:
                 for k in bw_alloc.keys():
                     bw_alloc[k] = math.floor(1. / (1. - reserve) * bw_alloc[k])

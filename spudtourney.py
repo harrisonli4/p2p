@@ -10,23 +10,23 @@ import random
 import logging
 
 from messages import Upload, Request
-from util import even_split
+from util import even_split, tie_compare
 from peer import Peer
 
 class SpudTourney(Peer):
     def post_init(self):
-        print "post_init(): %s here!" % self.id
+        # print "post_init(): %s here!" % self.id
         self.dummy_state = dict()
         self.dummy_state["cake"] = "lie"
         self.tau = {} # expected upload rate for reciprocation
         self.tau_init_factor = 3
         self.f = {} # expected download rate
-        self.f_init_factor = 3
+        self.f_init_factor = 8
         self.prev_num_pieces = {} # store number of pieces held by peers in previous round to estimate f
         self.consecutive_unchoked = {} # store number of consecutive previous rounds each peer unchoked
-        self.gamma = 0.05
+        self.gamma = 0.1
         self.r = 3
-        self.alpha = 0.05
+        self.alpha = 0.2
 
     
     def requests(self, peers, history):
@@ -44,11 +44,6 @@ class SpudTourney(Peer):
         
 
         requests = []   # We'll put all the things we want here
-        # Symmetry breaking is good...
-        # random.shuffle(needed_pieces)
-
-        # logging.debug("%s here: still need pieces %s" % (
-          #  self.id, needed_pieces))
 
         #logging.debug("%s still here. Here are some peers:" % self.id)
 
@@ -78,13 +73,24 @@ class SpudTourney(Peer):
         # logging.debug(str(history))
  
         reqs_perpeer = {p.id:0 for p in peers}
+
+        curr_round = history.current_round()
+        recentInteractors = set()
+        if curr_round > 0:
+            recentInteractors |= set([c.from_id for c in history.downloads[-1]])
+            recentInteractors |= set([c.to_id for c in history.uploads[-1]])
+
         for piece_id in rarest_pieces:
         ### TODO check most recent round and see if you uploaded the most to ### 
             ## for now, randomly pick a peer to request ##
             cand_peers = filter(lambda x: reqs_perpeer[x] < self.max_requests, piece_counts[piece_id])
             if len(cand_peers) < 1:
                 continue
-            peer_id = random.choice(cand_peers)
+            priority_peers = filter(lambda x: x in recentInteractors, cand_peers)
+            if len(priority_peers) > 0:
+                peer_id = random.choice(priority_peers)
+            else:
+                peer_id = random.choice(cand_peers)
             # if reqs_perpeer[peer_id] < self.max_requests:
             reqs_perpeer[peer_id] = reqs_perpeer[peer_id] +1
             # logging.debug("peer_id: %s, requests: %s, max: %s" % (peer_id, reqs_perpeer[peer_id], self.max_requests))
