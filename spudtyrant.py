@@ -22,12 +22,12 @@ class SpudTyrant(Peer):
         self.tau = {} # expected upload rate for reciprocation
         self.tau_init_factor = 3
         self.f = {} # expected download rate
-        self.f_init_factor = 3
+        self.f_init_factor = 8
         self.prev_num_pieces = {} # store number of pieces held by peers in previous round to estimate f
         self.consecutive_unchoked = {} # store number of consecutive previous rounds each peer unchoked
-        self.gamma = 0.05
+        self.gamma = 0.1
         self.r = 3
-        self.alpha = 0.05
+        self.alpha = 0.2
 
     
     def requests(self, peers, history):

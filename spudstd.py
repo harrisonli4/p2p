@@ -121,7 +121,8 @@ class SpudStd(Peer):
             peer_blocks = dict()
             ## look at the last history
             downloads = list(history.downloads[-1])
-            downloads.extend(history.downloads[-2])
+            if len(history.downloads) > 1:
+                downloads.extend(history.downloads[-2])
             for d in downloads:
                 ## sort, and take top 3 to unchoke
                 ## if there aren't 3, then we only optimistically unchoke 1 person
