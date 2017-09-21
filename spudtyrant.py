@@ -24,7 +24,7 @@ class SpudTyrant(Peer):
         self.prev_num_pieces = {} # store number of pieces held by peers in previous round to estimate f
         self.consecutive_unchoked = {} # store number of consecutive previous rounds each peer unchoked
         self.gamma = 0.1
-        self.r = 4
+        self.r = 3
         self.alpha = 0.2
     
     def requests(self, peers, history):
@@ -112,8 +112,8 @@ class SpudTyrant(Peer):
 
         # initialize tau and f for round 0
         if curr_round == 0:
-            self.tau = {p.id:self.up_bw/4.0  for p in peers}
-            self.f = {p.id:5.0 for p in peers}
+            self.tau = {p.id:self.up_bw/3.0  for p in peers}
+            self.f = {p.id:8.0 for p in peers}
             self.prev_num_pieces = {p.id:0 for p in peers}
             self.consecutive_unchoked = {p.id:0 for p in peers}
         else:
@@ -144,6 +144,7 @@ class SpudTyrant(Peer):
                 else:
                     # estimate f by computing number of pieces downloaded in last round
                     self.f[p_id] = (curr_num_pieces[p_id] - self.prev_num_pieces[p_id]) * self.conf.blocks_per_piece
+                    self.f[p_id] /= 8.0
                     self.consecutive_unchoked[p_id] = 0
                     self.tau[p_id] = (1. + self.alpha) * self.tau[p_id]
 
