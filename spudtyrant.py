@@ -24,7 +24,7 @@ class SpudTyrant(Peer):
         self.prev_num_pieces = {} # store number of pieces held by peers in previous round to estimate f
         self.consecutive_unchoked = {} # store number of consecutive previous rounds each peer unchoked
         self.gamma = 0.1
-        self.r = 3
+        self.r = 4
         self.alpha = 0.2
     
     def requests(self, peers, history):
@@ -112,8 +112,8 @@ class SpudTyrant(Peer):
 
         # initialize tau and f for round 0
         if curr_round == 0:
-            self.tau = {p.id:self.up_bw/2.0  for p in peers}
-            self.f = {p.id:1.0 for p in peers}
+            self.tau = {p.id:self.up_bw/4.0  for p in peers}
+            self.f = {p.id:5.0 for p in peers}
             self.prev_num_pieces = {p.id:0 for p in peers}
             self.consecutive_unchoked = {p.id:0 for p in peers}
         else:
@@ -158,9 +158,6 @@ class SpudTyrant(Peer):
             logging.debug("No one wants my pieces!")
         else:
             logging.debug("Still here: uploading to a random peer")
-            # change my internal state for no reason
-            self.dummy_state["cake"] = "pie"
-
             # compute ratios, sort peers by ratio
             ratios = {p.id: self.f[p.id] / self.tau[p.id] for p in peers}
             requesters = [req.requester_id for req in requests]
