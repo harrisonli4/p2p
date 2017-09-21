@@ -11,7 +11,7 @@ import logging
 import math
 
 from messages import Upload, Request
-from util import even_split
+from util import even_split, tie_compare
 from peer import Peer
 
 class SpudPropShare(Peer):
@@ -32,42 +32,59 @@ class SpudPropShare(Peer):
         needed = lambda i: self.pieces[i] < self.conf.blocks_per_piece
         needed_pieces = filter(needed, range(len(self.pieces)))
         np_set = set(needed_pieces)  # sets support fast intersection ops.
-
-        logging.debug("%s here: still need pieces %s" % (
-            self.id, needed_pieces))
-
-        logging.debug("%s still here. Here are some peers:" % self.id)
-        for p in peers:
-            logging.debug("id: %s, available pieces: %s" % (p.id, p.available_pieces))
-
-        logging.debug("And look, I have my entire history available too:")
-        logging.debug("look at the AgentHistory class in history.py for details")
-        logging.debug(str(history))
+        
 
         requests = []   # We'll put all the things we want here
         # Symmetry breaking is good...
-        random.shuffle(needed_pieces)
-        
-        # Sort peers by id.  This is probably not a useful sort, but other 
-        # sorts might be useful
-        peers.sort(key=lambda p: p.id)
-        # request all available pieces from all peers!
-        # (up to self.max_requests from each)
-        for peer in peers:
-            av_set = set(peer.available_pieces)
-            isect = av_set.intersection(np_set)
-            n = min(self.max_requests, len(isect))
-            # More symmetry breaking -- ask for random pieces.
-            # This would be the place to try fancier piece-requesting strategies
-            # to avoid getting the same thing from multiple peers at a time.
-            for piece_id in random.sample(isect, n):
-                # aha! The peer has this piece! Request it.
-                # which part of the piece do we need next?
-                # (must get the next-needed blocks in order)
-                start_block = self.pieces[piece_id]
-                r = Request(self.id, peer.id, piece_id, start_block)
-                requests.append(r)
+        # random.shuffle(needed_pieces)
 
+        # logging.debug("%s here: still need pieces %s" % (
+          #  self.id, needed_pieces))
+
+        #logging.debug("%s still here. Here are some peers:" % self.id)
+
+        piece_counts = dict()
+
+        for p in peers:
+            logging.debug("id: %s, available pieces: %s" % (p.id, p.available_pieces))
+            logging.debug("peer info: %s" % (p))
+            #### request rarest first functionality #####
+
+            for piece in p.available_pieces:
+                if piece in np_set:
+                    if piece in piece_counts:
+                        piece_counts[piece].append(p.id)
+                    else:
+                        piece_counts[piece] = [p.id]
+                    ###### request rarest first functionality ####
+        
+        # logging.debug("number of pieces needed: %s" % (len(np_set)))
+        # logging.debug("number of pieces available: %s" % (len(piece_counts)))
+
+        # logging.debug("piece_counts: %s" % (piece_counts))
+        rarest_pieces = sorted(piece_counts, key = piece_counts.get, cmp = tie_compare)
+        # logging.debug("rarest_pieces: %s" % (rarest_pieces))
+        # logging.debug("And look, I have my entire history available too:")
+        # logging.debug("look at the AgentHistory class in history.py for details")
+        # logging.debug(str(history))
+ 
+        reqs_perpeer = {p.id:0 for p in peers}
+        for piece_id in rarest_pieces:
+        ### TODO check most recent round and see if you uploaded the most to ### 
+            ## for now, randomly pick a peer to request ##
+            cand_peers = filter(lambda x: reqs_perpeer[x] < self.max_requests, piece_counts[piece_id])
+            if len(cand_peers) < 1:
+                continue
+            peer_id = random.choice(cand_peers)
+            # if reqs_perpeer[peer_id] < self.max_requests:
+            reqs_perpeer[peer_id] = reqs_perpeer[peer_id] +1
+            # logging.debug("peer_id: %s, requests: %s, max: %s" % (peer_id, reqs_perpeer[peer_id], self.max_requests))
+      
+                
+            start_block = self.pieces[piece_id]
+            r = Request(self.id, peer_id, piece_id, start_block)
+            requests.append(r)
+        # logging.debug("number of requests made: %s" % (len(requests)))
         return requests
 
     def uploads(self, requests, peers, history):

@@ -25,7 +25,7 @@ class SpudTyrant(Peer):
         self.consecutive_unchoked = {} # store number of consecutive previous rounds each peer unchoked
         self.gamma = 0.1
         self.r = 1
-        self.alpha = 0.02
+        self.alpha = 0.1
     
     def requests(self, peers, history):
         """
@@ -66,7 +66,6 @@ class SpudTyrant(Peer):
                     ###### request rarest first functionality ####
         
         # logging.debug("number of pieces needed: %s" % (len(np_set)))
-# 
         # logging.debug("number of pieces available: %s" % (len(piece_counts)))
 
         # logging.debug("piece_counts: %s" % (piece_counts))
@@ -75,17 +74,7 @@ class SpudTyrant(Peer):
         # logging.debug("And look, I have my entire history available too:")
         # logging.debug("look at the AgentHistory class in history.py for details")
         # logging.debug(str(history))
-      
-
-
-        
-        # Sort peers by id.  This is probably not a useful sort, but other 
-        # sorts might be useful
-        # peers.sort(key=lambda p: p.id)
-
-
-        # request all available pieces from all peers!
-        # (up to self.max_requests from each)
+ 
         reqs_perpeer = {p.id:0 for p in peers}
         for piece_id in rarest_pieces:
         ### TODO check most recent round and see if you uploaded the most to ### 
@@ -97,22 +86,14 @@ class SpudTyrant(Peer):
             # if reqs_perpeer[peer_id] < self.max_requests:
             reqs_perpeer[peer_id] = reqs_perpeer[peer_id] +1
             # logging.debug("peer_id: %s, requests: %s, max: %s" % (peer_id, reqs_perpeer[peer_id], self.max_requests))
-            # av_set = set(peer.available_pieces)
-            # isect = av_set.intersection(np_set)
-            # n = min(self.max_requests, len(isect))
-            # More symmetry breaking -- ask for random pieces.
-            # This would be the place to try fancier piece-requesting strategies
-            # to avoid getting the same thing from multiple peers at a time.
-            #for piece_id in random.sample(isect, n):
-                # aha! The peer has this piece! Request it.
-                # which part of the piece do we need next?
-                # (must get the next-needed blocks in order)
+      
                 
             start_block = self.pieces[piece_id]
             r = Request(self.id, peer_id, piece_id, start_block)
             requests.append(r)
         # logging.debug("number of requests made: %s" % (len(requests)))
         return requests
+
 
     def uploads(self, requests, peers, history):
         """
@@ -131,7 +112,7 @@ class SpudTyrant(Peer):
 
         # initialize tau and f for round 0
         if curr_round == 0:
-            self.tau = {p.id:self.up_bw / 4. for p in peers}
+            self.tau = {p.id:self.up_bw/2.0  for p in peers}
             self.f = {p.id:0. for p in peers}
             self.prev_num_pieces = {p.id:0 for p in peers}
             self.consecutive_unchoked = {p.id:0 for p in peers}
