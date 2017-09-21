@@ -20,6 +20,7 @@ class SpudStd(Peer):
         self.dummy_state = dict()
         self.dummy_state["cake"] = "lie"
         self.slots = 3
+        self.unchoked = []
 
 
     def requests(self, peers, history):
@@ -60,7 +61,6 @@ class SpudStd(Peer):
                     ###### request rarest first functionality ####
         
         # logging.debug("number of pieces needed: %s" % (len(np_set)))
-# 
         # logging.debug("number of pieces available: %s" % (len(piece_counts)))
 
         # logging.debug("piece_counts: %s" % (piece_counts))
@@ -69,17 +69,7 @@ class SpudStd(Peer):
         # logging.debug("And look, I have my entire history available too:")
         # logging.debug("look at the AgentHistory class in history.py for details")
         # logging.debug(str(history))
-      
-
-
-        
-        # Sort peers by id.  This is probably not a useful sort, but other 
-        # sorts might be useful
-        # peers.sort(key=lambda p: p.id)
-
-
-        # request all available pieces from all peers!
-        # (up to self.max_requests from each)
+ 
         reqs_perpeer = {p.id:0 for p in peers}
         for piece_id in rarest_pieces:
         ### TODO check most recent round and see if you uploaded the most to ### 
@@ -91,16 +81,7 @@ class SpudStd(Peer):
             # if reqs_perpeer[peer_id] < self.max_requests:
             reqs_perpeer[peer_id] = reqs_perpeer[peer_id] +1
             # logging.debug("peer_id: %s, requests: %s, max: %s" % (peer_id, reqs_perpeer[peer_id], self.max_requests))
-            # av_set = set(peer.available_pieces)
-            # isect = av_set.intersection(np_set)
-            # n = min(self.max_requests, len(isect))
-            # More symmetry breaking -- ask for random pieces.
-            # This would be the place to try fancier piece-requesting strategies
-            # to avoid getting the same thing from multiple peers at a time.
-            #for piece_id in random.sample(isect, n):
-                # aha! The peer has this piece! Request it.
-                # which part of the piece do we need next?
-                # (must get the next-needed blocks in order)
+      
                 
             start_block = self.pieces[piece_id]
             r = Request(self.id, peer_id, piece_id, start_block)
@@ -159,18 +140,29 @@ class SpudStd(Peer):
                 chosen = sorted_requesters[:self.slots]
             else:  
                 chosen = sorted_requesters
-            ## optimistic unchocking
-            ## always choose one more peer if there is one more looking to request
+
+            # if there are not enough requesters that uploaded to us
+            # unchoke s-1-len(chosen) more for this round
             if len(requesters) > len(chosen):
-                ## chosen append someone random
                 for c in chosen:
                     requesters.remove(c)
-                optimistic = random.sample(requesters, min(self.slots+1 - len(chosen), len(requesters)))
-                chosen.extend(optimistic)
+                extra = random.sample(requesters, min(self.slots - len(chosen), len(requesters)))
+                chosen.extend(extra)
+            ## optimistic unchocking up to remaining number of slots
+            ## if round is 0 mod 3
+            if (round % 3 == 0):
+                if len(requesters) > len(chosen):
+                    for c in extra:
+                        requesters.remove(c)
+                    ## chosen append someone random
+                    optimistic = random.choice(list(requesters))
+                    chosen.append(optimistic)
+                    self.unchoked = optimistic
 
+            else:
+                chosen.append(self.unchoked)
             # logging.debug("chosen: %s", chosen)
-            #request = random.choice(requests)
-            #chosen = [request.requester_id]
+            # request = random.choice(requests)
             # Evenly "split" my upload bandwidth among the one chosen requester
             assert(len(chosen)>0)
             assert(len(chosen)<=4)
