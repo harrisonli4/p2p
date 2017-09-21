@@ -145,7 +145,7 @@ class SpudPropShare(Peer):
             
             # get rid of 0's
             bw_alloc = {p:bw_alloc[p] for p in bw_alloc if bw_alloc[p] > 0}
-            print 'Requests:', bw_alloc
+            logging.debug('Uploads: %s' % (bw_alloc))
 
             # change my internal state for no reason
             self.dummy_state["cake"] = "pie"

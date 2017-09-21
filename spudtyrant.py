@@ -20,12 +20,15 @@ class SpudTyrant(Peer):
         self.dummy_state = dict()
         self.dummy_state["cake"] = "lie"
         self.tau = {} # expected upload rate for reciprocation
+        self.tau_init_factor = 3
         self.f = {} # expected download rate
+        self.f_init_factor = 3
         self.prev_num_pieces = {} # store number of pieces held by peers in previous round to estimate f
         self.consecutive_unchoked = {} # store number of consecutive previous rounds each peer unchoked
-        self.gamma = 0.1
+        self.gamma = 0.05
         self.r = 3
-        self.alpha = 0.2
+        self.alpha = 0.05
+
     
     def requests(self, peers, history):
         """
@@ -112,8 +115,8 @@ class SpudTyrant(Peer):
 
         # initialize tau and f for round 0
         if curr_round == 0:
-            self.tau = {p.id:self.up_bw/3.0  for p in peers}
-            self.f = {p.id:8.0 for p in peers}
+            self.tau = {p.id:(self.conf.min_up_bw + self.conf.max_up_bw)/(2.*self.tau_init_factor)  for p in peers}
+            self.f = {p.id:(self.conf.min_up_bw + self.conf.max_up_bw)/(2.*self.f_init_factor) for p in peers}
             self.prev_num_pieces = {p.id:0 for p in peers}
             self.consecutive_unchoked = {p.id:0 for p in peers}
         else:

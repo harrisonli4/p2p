@@ -393,7 +393,8 @@ class Sim:
             cs = completion_by_id[p_id]
             logging.warning("%s: %s  (%s)" % (p_id, opt_mean(cs), opt_stddev(cs)))
 
-
+        completion_by_round = map(max, zip(*[completion_by_id[p_id] for p_id in self.peer_ids if p_id[:4] != 'Seed']))
+        logging.warning("Mean game length: %s" % (sum(completion_by_round) / float(len(completion_by_round))))
 
 def configure_logging(loglevel):
     numeric_level = getattr(logging, loglevel.upper(), None)
