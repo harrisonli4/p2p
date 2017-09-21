@@ -24,8 +24,8 @@ class SpudTyrant(Peer):
         self.prev_num_pieces = {} # store number of pieces held by peers in previous round to estimate f
         self.consecutive_unchoked = {} # store number of consecutive previous rounds each peer unchoked
         self.gamma = 0.1
-        self.r = 1
-        self.alpha = 0.1
+        self.r = 3
+        self.alpha = 0.2
     
     def requests(self, peers, history):
         """
@@ -113,7 +113,7 @@ class SpudTyrant(Peer):
         # initialize tau and f for round 0
         if curr_round == 0:
             self.tau = {p.id:self.up_bw/2.0  for p in peers}
-            self.f = {p.id:0. for p in peers}
+            self.f = {p.id:1.0 for p in peers}
             self.prev_num_pieces = {p.id:0 for p in peers}
             self.consecutive_unchoked = {p.id:0 for p in peers}
         else:
@@ -129,19 +129,23 @@ class SpudTyrant(Peer):
                 else:
                     downloaded_amt[d.from_id] = d.blocks    
             logging.debug('Downloaded amount: %s' % downloaded_amt)
-            # update f, tau
-            for p in peers:
+            # update f, tau for peers that we unchoked in the previous round
+
+            for u in history.uploads[-1]:
+                p_id = u.to_id
+
+            # for p in peers:
                 # if unchoked last round
-                if p.id in downloaded_amt:
-                    self.f[p.id] = downloaded_amt[p.id] 
-                    self.consecutive_unchoked[p.id] += 1
-                    if self.consecutive_unchoked[p.id] >= self.r:
-                        self.tau[p.id] = (1. - self.gamma) * self.tau[p.id]
+                if p_id in downloaded_amt:
+                    self.f[p_id] = downloaded_amt[p_id] 
+                    self.consecutive_unchoked[p_id] += 1
+                    if self.consecutive_unchoked[p_id] >= self.r:
+                        self.tau[p_id] = (1. - self.gamma) * self.tau[p_id]
                 else:
                     # estimate f by computing number of pieces downloaded in last round
-                    self.f[p.id] = (curr_num_pieces[p.id] - self.prev_num_pieces[p.id]) * self.conf.blocks_per_piece
-                    self.consecutive_unchoked[p.id] = 0
-                    self.tau[p.id] = (1. + self.alpha) * self.tau[p.id]
+                    self.f[p_id] = (curr_num_pieces[p_id] - self.prev_num_pieces[p_id]) * self.conf.blocks_per_piece
+                    self.consecutive_unchoked[p_id] = 0
+                    self.tau[p_id] = (1. + self.alpha) * self.tau[p_id]
 
             # update prev_num_pieces for next round
             logging.debug('tau: %s' % (self.tau))
