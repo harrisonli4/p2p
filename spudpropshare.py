@@ -114,12 +114,12 @@ class SpudPropShare(Peer):
             peer_dict = {p.id:0 for p in peers}
             for d_obj in history.downloads[-1]:
                 peer_dict[d_obj.from_id] += d_obj.blocks
-            print 'Downloaded blocks from each peer:', peer_dict
+            logging.debug('Downloaded blocks from each peer: %s' % (peer_dict))
 
             # only consider peers who are requesting from me
             peer_dict_sub = {k:v for k, v in peer_dict.iteritems() if k in [req.requester_id for req in requests]}
             
-            print 'Peers requesting from me', peer_dict_sub
+            logging.debug('Peers requesting from me %s' % (peer_dict_sub.keys()))
             
             # compute bandwith allocations
             bw_alloc = {p:0. for p in peer_dict_sub}
@@ -141,11 +141,11 @@ class SpudPropShare(Peer):
                 for k in bw_alloc.keys():
                     bw_alloc[k] = math.floor(1. / (1. - reserve) * bw_alloc[k])
 
-            print 'Allocated bandwith:', bw_alloc, 'Max bandwith', self.up_bw
-            logging.debug("Still here: uploading")
+            logging.debug('Allocated bandwith: %s Max bandwidth: %d' % (bw_alloc, self.up_bw))
             
             # get rid of 0's
             bw_alloc = {p:bw_alloc[p] for p in bw_alloc if bw_alloc[p] > 0}
+            print 'Requests:', bw_alloc
 
             # change my internal state for no reason
             self.dummy_state["cake"] = "pie"
