@@ -13,7 +13,7 @@ from messages import Upload, Request
 from util import even_split, tie_compare
 from peer import Peer
 
-class SpudTourney3(Peer):
+class SpudTourney(Peer):
     def post_init(self):
         print "post_init(): %s here!" % self.id
         self.dummy_state = dict()
@@ -27,7 +27,7 @@ class SpudTourney3(Peer):
         self.gamma = 0.1
         self.r = 3
         self.alpha = 0.2
-        self.lookback = 3
+        self.lookback = 2
         self.disc = 1.0
 
     
@@ -152,7 +152,6 @@ class SpudTourney3(Peer):
                     n_periods = min(curr_round-1, self.lookback)
                     weights = [1. / (self.disc ** i) for i in range(n_periods)]
                     weights = [w /sum(weights) for w in weights]
-                    print self.prev_num_pieces
                     download_diff = [self.prev_num_pieces[i+1][p_id] - self.prev_num_pieces[i][p_id] for i in range(n_periods-1)]
                     self.f[p_id] = sum([self.conf.blocks_per_piece * weights[i] * download_diff[i] / 4. for i in range(n_periods-1)]) # assume 4 unchoking slots
                     self.consecutive_unchoked[p_id] = 0
