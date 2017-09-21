@@ -48,7 +48,8 @@ class SpudStd(Peer):
         piece_counts = dict()
 
         for p in peers:
-            # logging.debug("id: %s, available pieces: %s" % (p.id, p.available_pieces))
+            logging.debug("id: %s, available pieces: %s" % (p.id, p.available_pieces))
+            logging.debug("peer info: %s" % (p))
             #### request rarest first functionality #####
 
             for piece in p.available_pieces:
