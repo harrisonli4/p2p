@@ -22,15 +22,16 @@ class SpudTourney(Peer):
         self.tau_init_factor = 3.
         self.f = {} # expected download rate
 
-        self.f_init_factor = 8.
+        self.f_init_factor = 12.
         self.prev_num_pieces = [] # store number of pieces held by peers in previous rounds to estimate f (queue)
         self.consecutive_unchoked = {} # store number of consecutive previous rounds each peer unchoked
-        self.gamma = 0.1
-        self.r = 3
-        self.alpha = 0.2
+        self.gamma = 0.2
+        self.r = 2
+        self.alpha = 0.05
 
         self.lookback = 2
         self.disc = 1.0
+        self.total_needed = 0.0
 
     
     def requests(self, peers, history):
@@ -83,27 +84,34 @@ class SpudTourney(Peer):
         if curr_round > 0:
             recentInteractors |= set([c.from_id for c in history.downloads[-1]])
             recentInteractors |= set([c.to_id for c in history.uploads[-1]])
-
+        else:
+            self.total_needed = len(needed_pieces)
         for piece_id in rarest_pieces:
-        ### TODO check most recent round and see if you uploaded the most to ### 
-            ## for now, randomly pick a peer to request ##
             cand_peers = filter(lambda x: reqs_perpeer[x] < self.max_requests, piece_counts[piece_id])
             if len(cand_peers) < 1:
                 continue
-            priority_peers = filter(lambda x: x in recentInteractors, cand_peers)
-            if len(priority_peers) > 0:
-                peer_id = random.choice(priority_peers)
+            ## ask for pieces from everyone at the end game
+            if (float(len(needed_pieces)/self.total_needed)) < 0.1:
+                random_peers = random.sample(cand_peers, max(int(len(cand_peers)/3), 1))
+                # random_peers = random.sample(cand_peers,min(int(len(peers)/3), len(cand_peers)))
+                for peer_id in random_peers:
+                    reqs_perpeer[peer_id] = reqs_perpeer[peer_id] +1
+                    start_block = self.pieces[piece_id]
+                    r = Request(self.id, peer_id, piece_id, start_block)
+                    requests.append(r)
             else:
-                peer_id = random.choice(cand_peers)
+                priority_peers = filter(lambda x: x in recentInteractors, cand_peers)
+                if len(priority_peers) > 0:
+                    peer_id = random.choice(priority_peers)
+                else:
+                    peer_id = random.choice(cand_peers)
 
-            # if reqs_perpeer[peer_id] < self.max_requests:
-            reqs_perpeer[peer_id] = reqs_perpeer[peer_id] +1
-            # logging.debug("peer_id: %s, requests: %s, max: %s" % (peer_id, reqs_perpeer[peer_id], self.max_requests))
-      
-                
-            start_block = self.pieces[piece_id]
-            r = Request(self.id, peer_id, piece_id, start_block)
-            requests.append(r)
+                reqs_perpeer[peer_id] = reqs_perpeer[peer_id] +1
+                # logging.debug("peer_id: %s, requests: %s, max: %s" % (peer_id, reqs_perpeer[peer_id], self.max_requests))
+
+                start_block = self.pieces[piece_id]
+                r = Request(self.id, peer_id, piece_id, start_block)
+                requests.append(r)
         # logging.debug("number of requests made: %s" % (len(requests)))
         return requests
 
