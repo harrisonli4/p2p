@@ -26,7 +26,7 @@ class SpudTourney(Peer):
         self.prev_num_pieces = [] # store number of pieces held by peers in previous rounds to estimate f (queue)
         self.consecutive_unchoked = {} # store number of consecutive previous rounds each peer unchoked
         self.gamma = 0.2
-        self.r = 2
+        self.r = 5
         self.alpha = 0.05
 
         self.lookback = 2
@@ -92,7 +92,7 @@ class SpudTourney(Peer):
                 continue
             ## ask for pieces from everyone at the end game
             if (float(len(needed_pieces)/self.total_needed)) < 0.1:
-                num_sample = min(max(int(len(cand_peers)/3), 3), len(cand_peers))
+                num_sample = max(int(len(cand_peers)/3), 1)
                 random_peers = random.sample(cand_peers, num_sample)
                 # random_peers = random.sample(cand_peers,min(int(len(peers)/3), len(cand_peers)))
                 for peer_id in random_peers:
