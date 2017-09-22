@@ -92,7 +92,8 @@ class SpudTourney(Peer):
                 continue
             ## ask for pieces from everyone at the end game
             if (float(len(needed_pieces)/self.total_needed)) < 0.1:
-                random_peers = random.sample(cand_peers, max(int(len(cand_peers)/3), 1))
+                num_sample = min(max(int(len(cand_peers)/3), 3), len(cand_peers))
+                random_peers = random.sample(cand_peers, num_sample)
                 # random_peers = random.sample(cand_peers,min(int(len(peers)/3), len(cand_peers)))
                 for peer_id in random_peers:
                     reqs_perpeer[peer_id] = reqs_perpeer[peer_id] +1
