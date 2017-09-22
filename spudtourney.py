@@ -19,14 +19,18 @@ class SpudTourney(Peer):
         self.dummy_state = dict()
         self.dummy_state["cake"] = "lie"
         self.tau = {} # expected upload rate for reciprocation
-        self.tau_init_factor = 3
+        self.tau_init_factor = 3.
         self.f = {} # expected download rate
-        self.f_init_factor = 8
-        self.prev_num_pieces = {} # store number of pieces held by peers in previous round to estimate f
+
+        self.f_init_factor = 8.
+        self.prev_num_pieces = [] # store number of pieces held by peers in previous rounds to estimate f (queue)
         self.consecutive_unchoked = {} # store number of consecutive previous rounds each peer unchoked
         self.gamma = 0.1
         self.r = 3
         self.alpha = 0.2
+
+        self.lookback = 2
+        self.disc = 1.0
 
     
     def requests(self, peers, history):
@@ -91,6 +95,7 @@ class SpudTourney(Peer):
                 peer_id = random.choice(priority_peers)
             else:
                 peer_id = random.choice(cand_peers)
+
             # if reqs_perpeer[peer_id] < self.max_requests:
             reqs_perpeer[peer_id] = reqs_perpeer[peer_id] +1
             # logging.debug("peer_id: %s, requests: %s, max: %s" % (peer_id, reqs_perpeer[peer_id], self.max_requests))
@@ -118,16 +123,18 @@ class SpudTourney(Peer):
             self.id, curr_round))
 
         # initialize tau and f for round 0
-        if curr_round == 0:
-            self.tau = {p.id:(self.conf.min_up_bw + self.conf.max_up_bw)/(2.*self.tau_init_factor)  for p in peers}
+        if curr_round < self.lookback:
+            if curr_round == 0:
+                self.tau = {p.id:(self.conf.min_up_bw + self.conf.max_up_bw)/(2.*self.tau_init_factor)  for p in peers}
             self.f = {p.id:(self.conf.min_up_bw + self.conf.max_up_bw)/(2.*self.f_init_factor) for p in peers}
-            self.prev_num_pieces = {p.id:0 for p in peers}
+            self.prev_num_pieces.append({p.id:0 for p in peers})
             self.consecutive_unchoked = {p.id:0 for p in peers}
         else:
             logging.debug('Unchoked: %s' % self.consecutive_unchoked)
             # store current total pieces for each peer
             curr_num_pieces = {p.id:len(p.available_pieces) for p in peers} 
-
+            self.prev_num_pieces.append(curr_num_pieces)
+            
             # compute total blocks downloaded from each peer last round
             downloaded_amt = {} 
             for d in history.downloads[-1]:
@@ -143,22 +150,26 @@ class SpudTourney(Peer):
 
             # for p in peers:
                 # if unchoked last round
-                if p_id in downloaded_amt:
+                if p_id in downloaded_amt or curr_round <= 1:
                     self.f[p_id] = downloaded_amt[p_id] 
                     self.consecutive_unchoked[p_id] += 1
                     if self.consecutive_unchoked[p_id] >= self.r:
                         self.tau[p_id] = (1. - self.gamma) * self.tau[p_id]
                 else:
-                    # estimate f by computing number of pieces downloaded in last round
-                    self.f[p_id] = (curr_num_pieces[p_id] - self.prev_num_pieces[p_id]) * self.conf.blocks_per_piece
-                    self.f[p_id] /= 8.0
+                    # estimate f by computing number of pieces downloaded in last self.lookback round
+                    n_periods = min(curr_round-1, self.lookback)
+                    weights = [1. / (self.disc ** i) for i in range(n_periods)]
+                    weights = [w /sum(weights) for w in weights]
+                    download_diff = [self.prev_num_pieces[i+1][p_id] - self.prev_num_pieces[i][p_id] for i in range(n_periods-1)]
+                    self.f[p_id] = sum([self.conf.blocks_per_piece * weights[i] * download_diff[i] / 4. for i in range(n_periods-1)]) # assume 4 unchoking slots
                     self.consecutive_unchoked[p_id] = 0
                     self.tau[p_id] = (1. + self.alpha) * self.tau[p_id]
 
             # update prev_num_pieces for next round
             logging.debug('tau: %s' % (self.tau))
             logging.debug('f: %s' % (self.f))
-            self.prev_num_pieces = curr_num_pieces  
+            self.prev_num_pieces = list(self.prev_num_pieces[1:])
+            logging.debug('prev_pieces: %s' %(self.prev_num_pieces)) 
         
         chosen = []
         bws = [] 
