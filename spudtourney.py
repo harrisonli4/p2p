@@ -25,8 +25,8 @@ class SpudTourney(Peer):
         self.f_init_factor = 12.
         self.prev_num_pieces = [] # store number of pieces held by peers in previous rounds to estimate f (queue)
         self.consecutive_unchoked = {} # store number of consecutive previous rounds each peer unchoked
-        self.gamma = 0.2
-        self.r = 5
+        self.gamma = 0.1
+        self.r = 2
         self.alpha = 0.05
 
         self.lookback = 2
