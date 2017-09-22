@@ -15,7 +15,7 @@ from peer import Peer
 
 class Dummy(Peer):
     def post_init(self):
-        print "post_init(): %s here!" % self.id
+        # print "post_init(): %s here!" % self.id
         self.dummy_state = dict()
         self.dummy_state["cake"] = "lie"
     
