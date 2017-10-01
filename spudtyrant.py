@@ -11,8 +11,16 @@ import logging
 
 from math import floor
 from messages import Upload, Request
-from util import even_split, tie_compare
+from util import even_split
 from peer import Peer
+
+def tie_compare(x,y):
+    if x < y:
+        return -1
+    elif x > y:
+        return 1
+    else:
+        return random.randint(0, 1) * 2 - 1
 
 class SpudTyrant(Peer):
     def post_init(self):
